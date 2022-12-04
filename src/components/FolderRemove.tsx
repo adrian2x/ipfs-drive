@@ -17,7 +17,9 @@ function folderRemoveOnClick(folder_paths: string[]) {
 export function FolderRemove({ folder_paths }: { folder_paths: string[] }) {
   return (
     <div>
-      <button onClick={() => folderRemoveOnClick(folder_paths)}>Remove</button>
+      <button disabled={folder_paths.length < 1} onClick={() => folderRemoveOnClick(folder_paths)}>
+        Remove
+      </button>
     </div>
   )
 }

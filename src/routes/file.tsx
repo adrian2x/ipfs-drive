@@ -44,9 +44,11 @@ export default function FilePage({ path }: { path: string }) {
       <h2>{currentName}</h2>
 
       {mimeType === 'application/pdf' && (
-        <div className='Example__container__document'>
+        <div className='pdf-container' style={{ maxHeight: '99vh', overflow: 'auto' }}>
           <Document file={file} onLoadSuccess={onDocumentLoadSuccess}>
-            <Page pageNumber={pageNumber} />
+            {Array.from(new Array(numPages), (el, index) => (
+              <Page key={`page_${index + 1}`} pageNumber={index + 1} />
+            ))}
           </Document>
         </div>
       )}

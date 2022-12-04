@@ -24,7 +24,9 @@ export function FileInput({ path }: { path: string }) {
 
   return (
     <div>
-      <button onClick={() => openFileSelector()}>Upload</button>
+      <button className='primary' onClick={() => openFileSelector()}>
+        Upload
+      </button>
     </div>
   )
 }

@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import { FileInput } from '../components/FileInput'
-import { NewFolder } from '../components/NewFolder'
+import prettyBytes from 'pretty-bytes'
+import { FolderActions } from '../components/FolderActions'
+import { FolderPath } from '../components/FolderPath'
 import { FolderSelector } from '../components/FolderSelector'
 import { concat, getFiles, stats } from '../lib/ipfs'
 import { MFSEntry } from '../lib/types'
 import FilePage, { fileUrl, parseUrl } from './file'
-import { FolderRemove } from '../components/FolderRemove'
 
 function getParentUrl(pathname: string) {
   const urlpath = pathname.split('/')
@@ -17,15 +17,19 @@ function getParentUrl(pathname: string) {
   // return pathname.slice(0, ends)
 }
 
-function Home() {
+export function useCurrentPath() {
   const params = useParams()
   let currentPath = concat(params.path || '', params['*'] || '')
-  currentPath = parseUrl(currentPath)
-  console.log('params', params, currentPath)
+  return parseUrl(currentPath)
+}
+
+function Home() {
+  let currentPath = useCurrentPath()
   const location = useLocation()
   const [parent, setParent] = useState(getParentUrl(location.pathname))
   const [fileList, setFileList] = useState<MFSEntry[]>([])
   const [filePreview, setFilePreview] = useState<any>()
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([])
 
   useEffect(() => {
     // Read files on this path
@@ -34,7 +38,7 @@ function Home() {
     const showFiles = async () => {
       const [info, files] = await Promise.all([stats(currentPath), getFiles(currentPath)])
       console.log('files:', info, files)
-      console.log('CID', files[0].cid.toString())
+      console.log('CID', files[0]?.cid.toString())
       if (info.type === 'directory') {
         setFilePreview(undefined)
         setFileList(files)
@@ -46,72 +50,85 @@ function Home() {
     showFiles()
   }, [location, currentPath])
 
-  const folderPaths: string[] = []
-
-  // <FolderAndFileDD />
-
   return (
-    <div>
-      <div>
-        <NewFolder path={currentPath} />
+    <div className='flex w-100'>
+      <div className='w-75 p4'>
+        <FolderPath path={currentPath} />
 
-        <FileInput path={currentPath} />
+        <div>
+          <table className='w-100'>
+            <thead>
+              <tr>
+                <th>
+                  <input
+                    type='checkbox'
+                    onClick={() => {
+                      if (selectedFiles.length === fileList.length) {
+                        setSelectedFiles([])
+                      } else {
+                        setSelectedFiles(fileList.map((f) => f.name))
+                      }
+                    }}
+                  />
+                </th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Size</th>
+              </tr>
+            </thead>
 
-        <FolderRemove folder_paths={folderPaths} />
-      </div>
-
-      <div>
-        <ul>
-          <li>
-            <input type='checkbox' onClick={() => handleSelectAll(fileList)} />
-            <Link to={parent}>..</Link>
-          </li>
+            <tbody>
+              {fileList.map((file) => {
+                return (
+                  <tr key={file.name}>
+                    <td>
+                      <input
+                        type='checkbox'
+                        name={file.name}
+                        checked={selectedFiles.includes(file.name)}
+                        onClick={(event) => {
+                          let index = selectedFiles.indexOf(file.name)
+                          if (index < 0) {
+                            setSelectedFiles(selectedFiles.concat(file.name))
+                          } else {
+                            selectedFiles.splice(index, 1)
+                            setSelectedFiles(selectedFiles.slice())
+                          }
+                        }}
+                      />
+                    </td>
+                    <td style={{ maxWidth: 100 }}>
+                      <Link
+                        className='ellipsis block'
+                        to={fileUrl(concat(currentPath === '/' ? '' : currentPath, file.name))}>
+                        {file.name.split('.')[0]}
+                      </Link>
+                    </td>
+                    <td>
+                      {file.type === 'directory'
+                        ? 'Folder'
+                        : file.name.split('.').slice(-1)[0].toUpperCase()}
+                    </td>
+                    <td>{prettyBytes(file.size)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
 
           {filePreview && <FilePage path={filePreview} />}
-
-          {fileList.map((file) => (
-            <li key={file.name}>
-              <input
-                type='checkbox'
-                name={file.name}
-                onClick={(event) =>
-                  handleClickCheckBoxEvent(
-                    folderPaths,
-                    concat(currentPath == '/' ? '' : currentPath, file.name)
-                  )
-                }
-              />
-              <Link to={fileUrl(concat(currentPath === '/' ? '' : currentPath, file.name))}>
-                {file.name}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        </div>
       </div>
 
-      <FolderSelector current_path={currentPath} />
+      <div className='p4'>
+        <FolderActions currentPath={currentPath} folderPaths={selectedFiles} />
+        <FolderSelector current_path={currentPath} />
+      </div>
     </div>
   )
 }
 
 export default Home
-
-/**
- * This function will add the selected file to the folderPaths array
- * @param folderPaths
- * @param file_name  - File name of the element that was checked
- */
-function handleClickCheckBoxEvent(folderPaths: string[], file_name: string) {
-  if (folderPaths.includes(file_name)) {
-    for (let i = 0; i < folderPaths.length; i++) {
-      if (folderPaths[i] === file_name) {
-        folderPaths.splice(i, 1)
-      }
-    }
-  } else {
-    folderPaths.push(file_name)
-  }
-}
 
 /**
  * Function that will add all selected file and folder paths to the folderPaths array
