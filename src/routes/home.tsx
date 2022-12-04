@@ -129,7 +129,7 @@ function Home() {
       <div className='p4' style={{ width: 328 }}>
         <FolderSelector currentPath={currentPath} />
         <FileInput currentPath={currentPath} />
-        <FolderRemove folderPaths={selectedFiles} />
+        <FolderRemove currentPath={currentPath} folderPaths={selectedFiles} />
       </div>
     </div>
   )
