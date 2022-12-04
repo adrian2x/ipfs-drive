@@ -1,10 +1,10 @@
-import * as React from 'react'
-import { collectFiles } from '../lib/ipfs'
+import React, { useEffect, useRef, useState } from 'react'
+import { collectFiles, concat } from '../lib/ipfs'
 
-const files: File[] = []
-const files_final: any = []
-const new_files: any = []
-const paths: string[] = []
+let files: File[] = []
+let files_final: any = []
+let new_files: any = []
+let paths: string[] = []
 
 /**
  * Function that will call on the functions to upload directory
@@ -12,8 +12,78 @@ const paths: string[] = []
  * @param current_path Current path that is being worked on.
  */
 async function handleChange(event: any, current_path: string) {
+  files_final = []
+  new_files = []
+  paths = []
   await handleSubmit(event, current_path)
   await collectFiles(paths, files_final, new_files)
+  window.location.reload()
+}
+
+function readFile(file: File) {
+  return new Promise<string | ArrayBuffer | null>((resolve, reject) => {
+    const fileReader = new FileReader()
+    fileReader.onload = () => {
+      const result = fileReader.result
+      resolve(result)
+    }
+    fileReader.onerror = reject
+    fileReader.readAsArrayBuffer(file)
+  })
+}
+
+function readFiles(currentPath: string, files: File[], data: File[]) {
+  return Promise.allSettled(
+    files.map((f) => {
+      let path = f.name
+      if (data?.length === 1 && data[0].type === '') {
+        path = concat(currentPath, data[0].name)
+        path = concat(path, f.name)
+      } else path = concat(currentPath, f.name)
+      paths.push(path)
+      return readFile(f).then((result) => files_final.push(result))
+    })
+  )
+}
+
+async function readFileEntry(entry: FileSystemFileEntry) {
+  return new Promise((resolve, reject) => {
+    entry.file((file) => {
+      resolve(file)
+    }, reject)
+  })
+}
+
+async function readDirectoryEntry(entry: FileSystemDirectoryEntry) {
+  let dirReader = entry.createReader()
+  return new Promise<FileSystemEntry[]>((resolve, reject) => {
+    dirReader.readEntries((entries) => {
+      resolve(entries)
+    }, reject)
+  })
+}
+
+async function processEntries(entry: FileSystemEntry, result: any[]) {
+  if (entry?.isFile) {
+    let file = await readFileEntry(entry as FileSystemFileEntry)
+    result.push(file)
+  } else if (entry?.isDirectory) {
+    let entries = await readDirectoryEntry(entry as FileSystemDirectoryEntry)
+    for (let k = 0; k < entries.length; k++) {
+      const element = entries[k]
+      await processEntries(element, result)
+    }
+  }
+}
+
+async function readItems(data: DataTransfer) {
+  let allFiles: File[] = []
+  let items = data.items
+  for (let i = 0; i < items.length; i++) {
+    const entry = items[i].webkitGetAsEntry()
+    await processEntries(entry!, allFiles)
+  }
+  return allFiles
 }
 
 /**
@@ -25,45 +95,67 @@ async function handleChange(event: any, current_path: string) {
 async function handleSubmit(event: any, current_path: string) {
   console.log('Handling onChange')
   event.preventDefault()
-  for (let i = 0; i < event.target.files.length; i++) {
-    const file = event.target.files[i]
-    const path = '/' + current_path + '/' + file.webkitRelativePath
-    files.push(file)
-    paths.push(path)
+  event.stopPropagation()
+  let files: File[] = [],
+    transferedFiles: File[] = []
+  if (event.target.files) {
+    files = Array.from(event.target.files)
+  } else if (event.dataTransfer) {
+    transferedFiles = Array.from(event.dataTransfer.files)
+    files = await readItems(event.dataTransfer)
   }
-  for (let i = 0; i < files.length; i++) {
-    const fileReader = new FileReader()
-    fileReader.addEventListener(
-      'load',
-      () => {
-        const result = fileReader.result
-        files_final.push(result)
-      },
-      false
-    )
-    fileReader.readAsArrayBuffer(files[i])
-  }
-  console.log('Finished onChange')
+  return readFiles(current_path, files, transferedFiles)
 }
 
-export function FolderSelector({ current_path }: { current_path: string }) {
-  const ref = React.useRef<HTMLInputElement>(null)
+export function FolderSelector({ currentPath }: { currentPath: string }) {
+  const ref = useRef<HTMLInputElement>(null)
+  const [isDisabled, setDisabled] = useState(false)
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (ref.current !== null) {
-      ref.current.setAttribute('directory', '')
       ref.current.setAttribute('webkitdirectory', '')
     }
   }, [ref])
 
+  const handleDragOver = (e: any) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  const handleDrop = async (e: any) => {
+    await handleChange(e, currentPath)
+  }
+
   // <ProgressBar />
   return (
     <div>
+      <div
+        data-disabled={isDisabled}
+        className='upload'
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}>
+        <div>Drag & drop files here</div>
+        <div className='my1'>OR</div>
+        <div>
+          <button
+            disabled={isDisabled}
+            className='primary mx0'
+            onClick={() => {
+              ref?.current?.click()
+            }}>
+            Browse
+          </button>
+        </div>
+      </div>
       <input
         type='file'
+        aria-label='Select folder'
+        className='hidden'
+        multiple
         ref={ref}
         onChange={async (event) => {
-          await handleChange(event, current_path)
+          await handleChange(event, currentPath)
         }}
       />
     </div>

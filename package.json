@@ -14,6 +14,7 @@
     "@types/node": "^16.11.68",
     "@types/react": "^18.0.21",
     "@types/react-dom": "^18.0.6",
+    "atomic-fns": "^0.4.3",
     "custom-error": "^0.2.1",
     "file-type": "^18.0.0",
     "ipfs-http-client": "^58.0.1",

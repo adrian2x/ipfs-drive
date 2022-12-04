@@ -1,3 +1,4 @@
+import { memoize } from 'atomic-fns'
 import { create } from 'ipfs-http-client'
 import mime from 'mime/lite'
 
@@ -70,7 +71,7 @@ export function concat(path: string, other: string) {
     return '/' + other
   }
   if (path && !path?.startsWith('/')) path = '/' + path
-  if (other && !other.startsWith('/')) other = '/' + other
+  if (other && !other.startsWith('/') && !path.endsWith('/')) other = '/' + other
   return path + other
 }
 
@@ -128,3 +129,25 @@ export async function collectFiles(paths: string[], files: any, new_files: any) 
   }
   // window.location.reload()
 }
+
+export const walk = memoize(async function walk(path = '', name = '') {
+  let files = await getFiles(path)
+  let nested = {
+    name,
+    path,
+    subdirs: [] as any[]
+  }
+  for (const f of files) {
+    if (f.type === 'directory') {
+      let subPath = concat(path, f.name)
+      console.log(subPath)
+      let result = await walk(subPath, f.name)
+      nested.subdirs.push({
+        name: f.name,
+        path: subPath,
+        subdirs: result.subdirs
+      })
+    }
+  }
+  return nested
+})

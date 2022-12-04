@@ -4,9 +4,12 @@ import prettyBytes from 'pretty-bytes'
 import { FolderActions } from '../components/FolderActions'
 import { FolderPath } from '../components/FolderPath'
 import { FolderSelector } from '../components/FolderSelector'
-import { concat, getFiles, stats } from '../lib/ipfs'
+import { concat, getFiles, stats, walk } from '../lib/ipfs'
 import { MFSEntry } from '../lib/types'
 import FilePage, { fileUrl, parseUrl } from './file'
+import { Sidebar } from '../components/Sidebar'
+import { FileInput } from '../components/FileInput'
+import { FolderRemove } from '../components/FolderRemove'
 
 function getParentUrl(pathname: string) {
   const urlpath = pathname.split('/')
@@ -52,8 +55,9 @@ function Home() {
 
   return (
     <div className='flex w-100'>
-      <div className='w-75 p4'>
-        <FolderPath path={currentPath} />
+      <Sidebar currentPath={currentPath} />
+      <div className='flex-1 p4'>
+        <FolderPath currentPath={currentPath} />
 
         <div>
           <table className='w-100'>
@@ -73,7 +77,8 @@ function Home() {
                 </th>
                 <th>Name</th>
                 <th>Type</th>
-                <th>Size</th>
+                <th className='text-right'>Size</th>
+                <th></th>
               </tr>
             </thead>
 
@@ -109,7 +114,8 @@ function Home() {
                         ? 'Folder'
                         : file.name.split('.').slice(-1)[0].toUpperCase()}
                     </td>
-                    <td>{prettyBytes(file.size)}</td>
+                    <td className='text-right'>{prettyBytes(file.size)}</td>
+                    <td></td>
                   </tr>
                 )
               })}
@@ -120,9 +126,10 @@ function Home() {
         </div>
       </div>
 
-      <div className='p4'>
-        <FolderActions currentPath={currentPath} folderPaths={selectedFiles} />
-        <FolderSelector current_path={currentPath} />
+      <div className='p4' style={{ width: 328 }}>
+        <FolderSelector currentPath={currentPath} />
+        <FileInput currentPath={currentPath} />
+        <FolderRemove folderPaths={selectedFiles} />
       </div>
     </div>
   )

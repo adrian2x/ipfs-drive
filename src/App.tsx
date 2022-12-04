@@ -17,10 +17,7 @@ function App() {
         </div>
       </nav>
 
-      <div className='flex'>
-        <aside className='sidebar w-20'></aside>
-        <Routes />
-      </div>
+      <Routes />
     </div>
   )
 }

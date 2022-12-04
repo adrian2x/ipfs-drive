@@ -14,10 +14,13 @@ function folderRemoveOnClick(folder_paths: string[]) {
   window.location.reload()
 }
 
-export function FolderRemove({ folder_paths }: { folder_paths: string[] }) {
+export function FolderRemove({ folderPaths }: { folderPaths: string[] }) {
   return (
     <div>
-      <button disabled={folder_paths.length < 1} onClick={() => folderRemoveOnClick(folder_paths)}>
+      <button
+        className='outline secondary'
+        disabled={folderPaths.length < 1}
+        onClick={() => folderRemoveOnClick(folderPaths)}>
         Remove
       </button>
     </div>
