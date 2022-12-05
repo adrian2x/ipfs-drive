@@ -81,7 +81,9 @@ async function readItems(data: DataTransfer) {
   let items = data.items
   for (let i = 0; i < items.length; i++) {
     const entry = items[i].webkitGetAsEntry()
-    await processEntries(entry!, allFiles)
+    if (entry) {
+      await processEntries(entry, allFiles)
+    }
   }
   return allFiles
 }
@@ -107,6 +109,26 @@ async function handleSubmit(event: any, current_path: string) {
   return readFiles(current_path, files, transferedFiles)
 }
 
+export function useDropZone({ currentPath }: { currentPath: string }) {
+  const onDragOver = (e: any) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.target.classList.add('is-active')
+    e.dataTransfer.dropEffect = 'copy'
+  }
+
+  const onDragLeave = async (e: any) => {
+    e.target.classList.remove('is-active')
+  }
+
+  const onDrop = async (e: any) => {
+    e.target.classList.remove('is-active')
+    await handleChange(e, currentPath)
+  }
+
+  return { onDragOver, onDrop, onDragLeave }
+}
+
 export function FolderSelector({ currentPath }: { currentPath: string }) {
   const ref = useRef<HTMLInputElement>(null)
   const [isDisabled, setDisabled] = useState(false)
@@ -117,24 +139,12 @@ export function FolderSelector({ currentPath }: { currentPath: string }) {
     }
   }, [ref])
 
-  const handleDragOver = (e: any) => {
-    e.preventDefault()
-    e.stopPropagation()
-    e.dataTransfer.dropEffect = 'copy'
-  }
-
-  const handleDrop = async (e: any) => {
-    await handleChange(e, currentPath)
-  }
+  const { onDragOver, onDrop } = useDropZone({ currentPath })
 
   // <ProgressBar />
   return (
     <div>
-      <div
-        data-disabled={isDisabled}
-        className='upload'
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}>
+      <div data-disabled={isDisabled} className='upload' onDragOver={onDragOver} onDrop={onDrop}>
         <div>Drag & drop files here</div>
         <div className='my1'>OR</div>
         <div>

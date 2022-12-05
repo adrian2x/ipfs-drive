@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { walk } from '../lib/ipfs'
+import { NewFolder } from './NewFolder'
 
 type Folder = {
   name: string
@@ -36,7 +37,8 @@ export function Sidebar({ currentPath }: { currentPath: string }) {
   }
 
   return (
-    <aside className='sidebar p4' style={{ width: 256 }}>
+    <aside className='sidebar p4' style={{ minWidth: 250 }}>
+      <NewFolder path={currentPath} />
       <div className='tree'>{content}</div>
     </aside>
   )

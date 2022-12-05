@@ -24,10 +24,10 @@ export function FolderRemove({
   return (
     <div>
       <button
-        className='outline secondary'
+        className='clear'
         disabled={folderPaths.length < 1}
         onClick={() => folderRemoveOnClick(currentPath, folderPaths)}>
-        Remove
+        Delete
       </button>
     </div>
   )

@@ -1,6 +1,7 @@
 import { memoize } from 'atomic-fns'
 import { create } from 'ipfs-http-client'
 import mime from 'mime/lite'
+import { startUpload, store } from './store'
 
 // Connect to the local address
 export const ipfs = create('/ip4/127.0.0.1/tcp/5001' as any)
@@ -105,29 +106,30 @@ export async function collectFiles(paths: string[], files: any, new_files: any) 
   // console.log("Paths: ", paths, typeof paths)
   // console.log("Files: ", files, typeof files)
   // console.log("New Files: ", new_files, typeof new_files)
+  startUpload()
+  let step = 1 / files.length
   for (var i = 0; i < files.length; i++) {
-    var percentage_done = (i / (new_files.length + files.length)) * 100
-    const hash = await ipfs.add(files[i])
-    // /ipfs/ is used before the hash.path below to avoid Uncaught (in promise) HTTPError: paths must start with a leading slash and core.js:103 Uncaught (in promise) HTTPError: cp: cannot get node from path /QmR45jDa5GvaLXVpRs5eXG4GZCQ9woD1UpmogT35UQ8xtb: file does not exist
-    const file = {
-      content: files[i],
-      path_name: paths[i],
-      hash: '/ipfs/' + hash.path
+    try {
+      store.update((s) => {
+        s.progress += step / 2
+      })
+      const hash = await ipfs.add(files[i])
+      // /ipfs/ is used before the hash.path below to avoid Uncaught (in promise) HTTPError: paths must start with a leading slash and core.js:103 Uncaught (in promise) HTTPError: cp: cannot get node from path /QmR45jDa5GvaLXVpRs5eXG4GZCQ9woD1UpmogT35UQ8xtb: file does not exist
+      const file = {
+        content: files[i],
+        path_name: paths[i],
+        hash: '/ipfs/' + hash.path
+      }
+      const destination_path = file.path_name
+      const hash_path = file.hash
+      await reflect_changes(hash_path, destination_path)
+    } catch (error) {
+      console.error(error)
     }
-
-    console.log('Percent Uploaded: ', percentage_done.toString() + '%')
-    new_files.push(file)
+    store.update((s) => {
+      s.progress += step / 2
+    })
   }
-
-  console.log('Files Collected... Reflecting Changes...')
-  for (var i = 0; i < new_files.length; i++) {
-    const destination_path = new_files[i].path_name
-    const hash_path = new_files[i].hash
-    await reflect_changes(hash_path, destination_path)
-    var percentage_done = ((i + files.length) / (new_files.length + files.length)) * 100
-    console.log('Percent Uploaded: ', percentage_done.toString() + '%')
-  }
-  // window.location.reload()
 }
 
 export const walk = memoize(async function walk(path = '', name = '') {
@@ -150,4 +152,16 @@ export const walk = memoize(async function walk(path = '', name = '') {
     }
   }
   return nested
+})
+
+export const getSize = memoize(async function getSize(path: string, total = 0) {
+  let files = await getFiles(path)
+  for (const f of files) {
+    if (f.type !== 'directory') {
+      total += f.size
+    } else {
+      total += await getSize(concat(path, f.name), total)
+    }
+  }
+  return total
 })

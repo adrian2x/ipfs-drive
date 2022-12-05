@@ -9,5 +9,9 @@ export function NewFolder({ path }: { path: string }) {
       await mkdir(concat(path, dir))
     }
   }
-  return <button onClick={onAddFolder}>New Folder</button>
+  return (
+    <button className='primary' onClick={onAddFolder}>
+      New folder
+    </button>
+  )
 }

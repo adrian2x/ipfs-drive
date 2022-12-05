@@ -21,6 +21,7 @@
     "mime": "^3.0.0",
     "mime-types": "^2.1.35",
     "pretty-bytes": "^6.0.0",
+    "pullstate": "^1.25.0",
     "react": "^16.6.3",
     "react-dom": "^16.6.3",
     "react-file-viewer": "^1.2.1",

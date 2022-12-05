@@ -24,7 +24,8 @@ export function FileInput({ currentPath }: { currentPath: string }) {
 
   return (
     <div>
-      <button className='outline primary' onClick={() => openFileSelector()}>
+      <button className='primary w-100 justify-center' onClick={() => openFileSelector()}>
+        <span className='icon'>+</span>
         File upload
       </button>
     </div>
